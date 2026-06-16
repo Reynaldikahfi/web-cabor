@@ -9,8 +9,9 @@
     "seed": "node src/lib/seed.mjs"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^11.10.0",
+    "dotenv": "^17.4.2",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

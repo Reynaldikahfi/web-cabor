@@ -23,7 +23,11 @@ export async function PUT(request) {
     }
 
     const db = getDb();
-    const admin = db.prepare('SELECT * FROM admins WHERE id = ?').get(decoded.id);
+    const adminResult = await db.execute({
+      sql: 'SELECT * FROM admins WHERE id = ?',
+      args: [decoded.id]
+    });
+    const admin = adminResult.rows[0];
 
     if (!admin) {
       return Response.json({ error: 'Admin tidak ditemukan' }, { status: 404 });
@@ -36,11 +40,10 @@ export async function PUT(request) {
     const newPasswordHash = await hashPassword(newPassword);
 
     try {
-      db.prepare('UPDATE admins SET username = ?, password_hash = ? WHERE id = ?').run(
-        newUsername, 
-        newPasswordHash, 
-        decoded.id
-      );
+      await db.execute({
+        sql: 'UPDATE admins SET username = ?, password_hash = ? WHERE id = ?',
+        args: [newUsername, newPasswordHash, decoded.id]
+      });
     } catch (e) {
       if (e.message.includes('UNIQUE constraint failed')) {
         return Response.json({ error: 'Username sudah digunakan' }, { status: 400 });

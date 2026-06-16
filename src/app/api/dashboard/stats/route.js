@@ -12,12 +12,21 @@ export async function GET() {
 
     const db = getDb();
     
-    const totalMatches = db.prepare('SELECT COUNT(*) as count FROM matches').get().count;
-    const finishedMatches = db.prepare("SELECT COUNT(*) as count FROM matches WHERE status = 'finished'").get().count;
-    const upcomingMatches = db.prepare("SELECT COUNT(*) as count FROM matches WHERE status = 'upcoming'").get().count;
-    const totalPlayers = db.prepare('SELECT COUNT(DISTINCT name) as count FROM players').get().count;
-    const totalGroups = db.prepare('SELECT COUNT(*) as count FROM groups').get().count;
-    const totalSports = db.prepare('SELECT COUNT(*) as count FROM sports').get().count;
+    const [matchesRes, finishedRes, upcomingRes, playersRes, groupsRes, sportsRes] = await Promise.all([
+      db.execute('SELECT COUNT(*) as count FROM matches'),
+      db.execute("SELECT COUNT(*) as count FROM matches WHERE status = 'finished'"),
+      db.execute("SELECT COUNT(*) as count FROM matches WHERE status = 'upcoming'"),
+      db.execute('SELECT COUNT(DISTINCT name) as count FROM players'),
+      db.execute('SELECT COUNT(*) as count FROM groups'),
+      db.execute('SELECT COUNT(*) as count FROM sports'),
+    ]);
+
+    const totalMatches = matchesRes.rows[0].count;
+    const finishedMatches = finishedRes.rows[0].count;
+    const upcomingMatches = upcomingRes.rows[0].count;
+    const totalPlayers = playersRes.rows[0].count;
+    const totalGroups = groupsRes.rows[0].count;
+    const totalSports = sportsRes.rows[0].count;
 
     return Response.json({
       totalMatches,

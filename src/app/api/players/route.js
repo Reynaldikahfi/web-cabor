@@ -11,15 +11,16 @@ export async function GET(request) {
     const db = getDb();
 
     if (groupId) {
-      const players = db.prepare(
-        'SELECT id, name FROM players WHERE group_id = ? ORDER BY name ASC'
-      ).all(parseInt(groupId));
-      return Response.json(players);
+      const playersResult = await db.execute({
+        sql: 'SELECT id, name FROM players WHERE group_id = ? ORDER BY name ASC',
+        args: [parseInt(groupId)]
+      });
+      return Response.json(playersResult.rows);
     }
 
     // Return all players if no filter
-    const players = db.prepare('SELECT id, name, group_id FROM players ORDER BY group_id ASC, name ASC').all();
-    return Response.json(players);
+    const playersResult = await db.execute('SELECT id, name, group_id FROM players ORDER BY group_id ASC, name ASC');
+    return Response.json(playersResult.rows);
   } catch (error) {
     console.error('Error fetching players:', error);
     return Response.json({ error: 'Terjadi kesalahan pada server' }, { status: 500 });
@@ -45,17 +46,19 @@ export async function POST(request) {
     const db = getDb();
 
     // Cek apakah pemain sudah terdaftar di grup ini (di sport manapun)
-    const existing = db.prepare(
-      'SELECT id FROM players WHERE name = ? AND group_id = ? LIMIT 1'
-    ).get(name.trim(), parseInt(group_id));
-    if (existing) {
+    const existingResult = await db.execute({
+      sql: 'SELECT id FROM players WHERE name = ? AND group_id = ? LIMIT 1',
+      args: [name.trim(), parseInt(group_id)]
+    });
+    if (existingResult.rows.length > 0) {
       return Response.json({ error: 'Pemain sudah terdaftar di grup ini' }, { status: 400 });
     }
 
     // Insert satu record dengan sport_id default 1 agar global
-    db.prepare(
-      'INSERT INTO players (name, group_id, sport_id) VALUES (?, ?, ?)'
-    ).run(name.trim(), parseInt(group_id), 1);
+    await db.execute({
+      sql: 'INSERT INTO players (name, group_id, sport_id) VALUES (?, ?, ?)',
+      args: [name.trim(), parseInt(group_id), 1]
+    });
 
     return Response.json({
       success: true,

@@ -52,7 +52,8 @@ export async function GET(request) {
 
     query += ` ORDER BY m.match_date ASC, m.match_time ASC, m.id ASC`;
 
-    const matches = db.prepare(query).all(params);
+    const matchesResult = await db.execute({ sql: query, args: params });
+    const matches = matchesResult.rows;
     
     // Parse the details JSON if it exists
     const parsedMatches = matches.map(match => {
@@ -111,25 +112,28 @@ export async function POST(request) {
     }
 
     const db = getDb();
-    const result = db.prepare(`
-      INSERT INTO matches (sport_id, match_date, match_time, home_group_id, away_group_id, home_score, away_score, stage, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      parseInt(sport_id),
-      match_date,
-      match_time,
-      parseInt(home_group_id),
-      parseInt(away_group_id),
-      home_score !== null && home_score !== '' ? parseInt(home_score) : null,
-      away_score !== null && away_score !== '' ? parseInt(away_score) : null,
-      stage,
-      status
-    );
+    const result = await db.execute({
+      sql: `
+        INSERT INTO matches (sport_id, match_date, match_time, home_group_id, away_group_id, home_score, away_score, stage, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        parseInt(sport_id),
+        match_date,
+        match_time,
+        parseInt(home_group_id),
+        parseInt(away_group_id),
+        home_score !== null && home_score !== '' ? parseInt(home_score) : null,
+        away_score !== null && away_score !== '' ? parseInt(away_score) : null,
+        stage,
+        status
+      ]
+    });
 
     return Response.json({
       success: true,
       message: 'Pertandingan berhasil ditambahkan',
-      matchId: result.lastInsertRowid
+      matchId: Number(result.lastInsertRowid)
     });
   } catch (error) {
     console.error('Error creating match:', error);

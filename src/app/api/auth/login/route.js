@@ -14,7 +14,8 @@ export async function POST(request) {
     }
 
     const db = getDb();
-    const admin = db.prepare('SELECT * FROM admins WHERE username = ?').get(username);
+    const result = await db.execute({ sql: 'SELECT * FROM admins WHERE username = ?', args: [username] });
+    const admin = result.rows[0];
 
     if (!admin || !comparePassword(password, admin.password_hash)) {
       return Response.json(

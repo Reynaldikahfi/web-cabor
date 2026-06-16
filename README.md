@@ -11,7 +11,7 @@ Aplikasi web untuk mengelola turnamen olahraga (Cabang Olahraga) antar grup/rond
 | **Framework** | [Next.js](https://nextjs.org) | 16.x | Full-stack React framework (App Router) |
 | **UI Library** | [React](https://react.dev) | 19.x | Komponen antarmuka |
 | **Styling** | [Tailwind CSS](https://tailwindcss.com) | v4 | Utility-first CSS framework |
-| **Database** | [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) | 11.x | SQLite database (sinkron, ringan, tanpa server) |
+| **Database** | [Turso / libSQL](https://turso.tech) | 0.14.x | SQLite di cloud (serverless-ready) via `@libsql/client` |
 | **Autentikasi** | [jsonwebtoken](https://github.com/auth0/node-jsonwebtoken) | 9.x | JWT untuk session admin |
 | **Enkripsi** | [bcryptjs](https://github.com/dcodeIO/bcrypt.js) | 3.x | Hash password admin |
 | **Ikon** | [lucide-react](https://lucide.dev) | 1.x | Ikon SVG siap pakai |
@@ -44,8 +44,8 @@ web-cabor/
 │       ├── db.js               # Koneksi & inisialisasi database SQLite
 │       ├── auth.js             # Helper JWT & bcrypt
 │       └── seed.mjs            # Script seed data awal
-├── tournament.db               # File database SQLite (di-gitignore)
-├── .env.local                  # Variabel environment (di-gitignore)
+├── tournament.db               # File database SQLite lokal (jika tidak pakai Turso cloud)
+├── .env.local                  # Variabel environment (JWT & Turso URL)
 ├── next.config.mjs
 ├── package.json
 └── postcss.config.mjs
@@ -109,9 +109,12 @@ Isi file `.env.local` dengan:
 
 ```env
 JWT_SECRET=ganti_dengan_string_acak_yang_panjang_dan_aman
+TURSO_DATABASE_URL=libsql://nama-db-username.turso.io
+TURSO_AUTH_TOKEN=xxxxxxxxxxxxxxx
 ```
 
-> ⚠️ **Penting:** Ganti nilai `JWT_SECRET` dengan string acak yang kuat (minimal 32 karakter). Nilai ini digunakan untuk menandatangani token JWT admin. Jangan gunakan nilai default.
+> ⚠️ **Penting:** Ganti nilai `JWT_SECRET` dengan string acak yang kuat (minimal 32 karakter).
+> Untuk menggunakan **Turso**, daftar di [turso.tech](https://turso.tech), buat database, dan masukkan URL beserta Token-nya. Jika dikosongkan, aplikasi akan menggunakan file lokal `tournament.db`.
 
 ---
 
@@ -124,7 +127,7 @@ npm run seed
 ```
 
 Script ini akan:
-- Membuat file `tournament.db` secara otomatis
+- Membuat tabel dan menyambung ke **Turso cloud** (atau membuat `tournament.db` lokal)
 - Membuat semua tabel (`admins`, `sports`, `groups`, `players`, `matches`)
 - Mengisi data awal: **5 cabang olahraga**, **10 grup ronda** (Pool A & B), **pemain**, dan **sample pertandingan**
 - Membuat akun admin default
@@ -132,7 +135,8 @@ Script ini akan:
 Output yang diharapkan:
 ```
 ✅ Database seeded successfully!
-   📁 Database file: ...\tournament.db
+   📁 Target URL: ...
+
    👤 Admin: admin / admin123
    🏐 4 cabang olahraga
    👥 10 grup ronda (Pool A & Pool B)
@@ -180,7 +184,7 @@ Gunakan kredensial default hasil seed:
 
 ## 🗃️ Database
 
-Aplikasi menggunakan **SQLite** via `better-sqlite3`. File database (`tournament.db`) dibuat otomatis saat pertama kali aplikasi dijalankan atau saat `npm run seed` dieksekusi.
+Aplikasi kini menggunakan **Turso** via `@libsql/client` yang 100% kompatibel dengan serverless seperti Vercel. Anda masih bisa menggunakan database SQLite lokal saat development jika `TURSO_DATABASE_URL` tidak diset.
 
 **Skema tabel:**
 
@@ -206,4 +210,4 @@ npm run start
 
 Akses di [http://localhost:3000](http://localhost:3000).
 
-> Untuk deploy ke server, pastikan file `tournament.db` dan `.env.local` sudah ada di server, dan jalankan `npm run seed` sekali sebelum `npm run start`.
+> ☁️ **Deploy ke Vercel:** Proyek ini sudah 100% siap di-deploy ke Vercel karena menggunakan database cloud Turso. Pastikan Anda telah memasukkan `JWT_SECRET`, `TURSO_DATABASE_URL`, dan `TURSO_AUTH_TOKEN` ke menu Environment Variables di dashboard Vercel Anda.

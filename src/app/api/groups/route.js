@@ -10,7 +10,7 @@ export async function GET(request) {
     const db = getDb();
 
     if (sportId) {
-      const rows = db.prepare(`
+      const result = await db.execute(`
         SELECT 
           g.id AS group_id, 
           g.name AS group_name, 
@@ -20,7 +20,8 @@ export async function GET(request) {
         FROM groups g
         LEFT JOIN players p ON p.group_id = g.id
         ORDER BY g.id ASC, p.id ASC
-      `).all();
+      `);
+      const rows = result.rows;
 
       // Group by group_id
       const groupsMap = {};
@@ -47,13 +48,15 @@ export async function GET(request) {
       return Response.json(Object.values(groupsMap));
     } else {
       // Return all groups with all players (grouped by cabor)
-      const groups = db.prepare('SELECT * FROM groups ORDER BY id ASC').all();
-      const players = db.prepare(`
+      const groupsResult = await db.execute('SELECT * FROM groups ORDER BY id ASC');
+      const groups = groupsResult.rows;
+      const playersResult = await db.execute(`
         SELECT p.*, s.name as sport_name 
         FROM players p 
         JOIN sports s ON p.sport_id = s.id 
         ORDER BY p.group_id ASC, p.sport_id ASC, p.id ASC
-      `).all();
+      `);
+      const players = playersResult.rows;
 
       const result = groups.map(g => {
         const groupPlayers = players.filter(p => p.group_id === g.id);
@@ -92,15 +95,18 @@ export async function POST(request) {
     }
 
     const db = getDb();
-    const result = db.prepare(`
-      INSERT INTO players (name, group_id, sport_id) 
-      VALUES (?, ?, ?)
-    `).run(name, group_id, sport_id);
+    const result = await db.execute({
+      sql: `
+        INSERT INTO players (name, group_id, sport_id) 
+        VALUES (?, ?, ?)
+      `,
+      args: [name, group_id, sport_id]
+    });
 
     return Response.json({
       success: true,
       message: 'Pemain berhasil ditambahkan',
-      id: result.lastInsertRowid
+      id: Number(result.lastInsertRowid)
     });
   } catch (error) {
     console.error('Error adding player:', error);

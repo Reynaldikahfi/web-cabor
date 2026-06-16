@@ -18,10 +18,12 @@ export async function PATCH(request, { params }) {
     }
 
     const db = getDb();
-    const result = db.prepare('UPDATE groups SET pool = ? WHERE id = ?')
-      .run(pool, parseInt(id));
+    const result = await db.execute({
+      sql: 'UPDATE groups SET pool = ? WHERE id = ?',
+      args: [pool, parseInt(id)]
+    });
 
-    if (result.changes === 0) {
+    if (result.rowsAffected === 0) {
       return Response.json({ error: 'Grup tidak ditemukan' }, { status: 404 });
     }
 

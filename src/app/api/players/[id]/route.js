@@ -22,19 +22,24 @@ export async function PUT(request, { params }) {
     const db = getDb();
 
     // Cari pemain berdasarkan id untuk dapat name & group_id lama
-    const existing = db.prepare('SELECT name, group_id FROM players WHERE id = ?').get(parseInt(id));
+    const existingResult = await db.execute({
+      sql: 'SELECT name, group_id FROM players WHERE id = ?',
+      args: [parseInt(id)]
+    });
+    const existing = existingResult.rows[0];
     if (!existing) {
       return Response.json({ error: 'Pemain tidak ditemukan' }, { status: 404 });
     }
 
     // Update semua record dengan name & group_id yang sama (semua cabor)
-    const result = db.prepare(
-      'UPDATE players SET name = ? WHERE name = ? AND group_id = ?'
-    ).run(name.trim(), existing.name, existing.group_id);
+    const result = await db.execute({
+      sql: 'UPDATE players SET name = ? WHERE name = ? AND group_id = ?',
+      args: [name.trim(), existing.name, existing.group_id]
+    });
 
     return Response.json({
       success: true,
-      message: `Nama pemain berhasil diperbarui di ${result.changes} cabang olahraga`,
+      message: `Nama pemain berhasil diperbarui di ${result.rowsAffected} cabang olahraga`,
     });
   } catch (error) {
     console.error('Error updating player:', error);
@@ -55,19 +60,24 @@ export async function DELETE(request, { params }) {
     const db = getDb();
 
     // Cari pemain berdasarkan id untuk dapat name & group_id
-    const existing = db.prepare('SELECT name, group_id FROM players WHERE id = ?').get(parseInt(id));
+    const existingResult = await db.execute({
+      sql: 'SELECT name, group_id FROM players WHERE id = ?',
+      args: [parseInt(id)]
+    });
+    const existing = existingResult.rows[0];
     if (!existing) {
       return Response.json({ error: 'Pemain tidak ditemukan' }, { status: 404 });
     }
 
     // Hapus semua record dengan name & group_id yang sama (semua cabor)
-    const result = db.prepare(
-      'DELETE FROM players WHERE name = ? AND group_id = ?'
-    ).run(existing.name, existing.group_id);
+    const result = await db.execute({
+      sql: 'DELETE FROM players WHERE name = ? AND group_id = ?',
+      args: [existing.name, existing.group_id]
+    });
 
     return Response.json({
       success: true,
-      message: `Pemain berhasil dihapus dari ${result.changes} cabang olahraga`,
+      message: `Pemain berhasil dihapus dari ${result.rowsAffected} cabang olahraga`,
     });
   } catch (error) {
     console.error('Error deleting player:', error);

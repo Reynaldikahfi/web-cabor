@@ -9,7 +9,8 @@ export async function GET(request, { params }) {
     const { id } = await params;
     const db = getDb();
 
-    const match = db.prepare(`
+    const matchResult = await db.execute({
+      sql: `
       SELECT
         m.*,
         s.name AS sport_name,
@@ -21,7 +22,10 @@ export async function GET(request, { params }) {
       JOIN groups gh ON m.home_group_id = gh.id
       JOIN groups ga ON m.away_group_id = ga.id
       WHERE m.id = ?
-    `).get(parseInt(id));
+      `,
+      args: [parseInt(id)]
+    });
+    const match = matchResult.rows[0];
 
     if (!match) {
       return Response.json({ error: 'Pertandingan tidak ditemukan' }, { status: 404 });
@@ -54,20 +58,21 @@ export async function PATCH(request, { params }) {
 
     const db = getDb();
 
-    const existing = db.prepare('SELECT id FROM matches WHERE id = ?').get(parseInt(id));
+    const existingResult = await db.execute({ sql: 'SELECT id FROM matches WHERE id = ?', args: [parseInt(id)] });
+    const existing = existingResult.rows[0];
     if (!existing) {
       return Response.json({ error: 'Pertandingan tidak ditemukan' }, { status: 404 });
     }
 
     if (details !== undefined) {
       const detailsStr = typeof details === 'string' ? details : JSON.stringify(details);
-      db.prepare('UPDATE matches SET details = ? WHERE id = ?').run(detailsStr, parseInt(id));
+      await db.execute({ sql: 'UPDATE matches SET details = ? WHERE id = ?', args: [detailsStr, parseInt(id)] });
     }
     
     if (home_score !== undefined && away_score !== undefined) {
       const parsedHomeScore = (home_score !== null && home_score !== '') ? parseInt(home_score) : null;
       const parsedAwayScore = (away_score !== null && away_score !== '') ? parseInt(away_score) : null;
-      db.prepare('UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?').run(parsedHomeScore, parsedAwayScore, parseInt(id));
+      await db.execute({ sql: 'UPDATE matches SET home_score = ?, away_score = ? WHERE id = ?', args: [parsedHomeScore, parsedAwayScore, parseInt(id)] });
     }
 
     return Response.json({ success: true, message: 'Detail pertandingan berhasil disimpan' });
@@ -110,21 +115,24 @@ export async function PUT(request, { params }) {
     const parsedAwayScore = (away_score !== null && away_score !== undefined && away_score !== '') ? parseInt(away_score) : null;
 
     const db = getDb();
-    const result = db.prepare(`
+    const result = await db.execute({
+      sql: `
       UPDATE matches 
       SET sport_id = ?, match_date = ?, match_time = ?,
           home_group_id = ?, away_group_id = ?,
           home_score = ?, away_score = ?, stage = ?, status = ?
       WHERE id = ?
-    `).run(
-      parseInt(sport_id), match_date, match_time,
-      parseInt(home_group_id), parseInt(away_group_id),
-      parsedHomeScore, parsedAwayScore,
-      stage || 'group', status,
-      parseInt(id)
-    );
+      `,
+      args: [
+        parseInt(sport_id), match_date, match_time,
+        parseInt(home_group_id), parseInt(away_group_id),
+        parsedHomeScore, parsedAwayScore,
+        stage || 'group', status,
+        parseInt(id)
+      ]
+    });
 
-    if (result.changes === 0) {
+    if (result.rowsAffected === 0) {
       return Response.json({ error: 'Pertandingan tidak ditemukan' }, { status: 404 });
     }
 
@@ -146,9 +154,9 @@ export async function DELETE(request, { params }) {
 
     const { id } = await params;
     const db = getDb();
-    const result = db.prepare('DELETE FROM matches WHERE id = ?').run(parseInt(id));
+    const result = await db.execute({ sql: 'DELETE FROM matches WHERE id = ?', args: [parseInt(id)] });
 
-    if (result.changes === 0) {
+    if (result.rowsAffected === 0) {
       return Response.json({ error: 'Pertandingan tidak ditemukan' }, { status: 404 });
     }
 
