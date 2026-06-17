@@ -45,10 +45,10 @@ export async function GET(request) {
  }
 
  if (conditions.length > 0) {
- query +=`WHERE`+ conditions.join('AND');
+ query += ` WHERE ` + conditions.join(' AND ');
  }
 
- query +=`ORDER BY m.match_date ASC, m.match_time ASC, m.id ASC`;
+ query += ` ORDER BY m.match_date ASC, m.match_time ASC, m.id ASC`;
 
  const matchesResult = await db.execute({ sql: query, args: params });
  const matches = matchesResult.rows;
